@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth.jsx";
 import Layout from "./components/Layout.jsx";
-import { Spinner } from "./components/Spinner.jsx";
+import { Spinner, ErrorBox } from "./components/Spinner.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -13,8 +13,12 @@ import Profile from "./pages/Profile.jsx";
 import Settings from "./pages/Settings.jsx";
 
 function Protected({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, bootError, retry } = useAuth();
   if (loading) return <Spinner />;
+  if (!user && bootError) {
+    // Token is still stored; the server just couldn't be reached. Offer a retry instead of logging out.
+    return <div className="page"><ErrorBox error={bootError} onRetry={retry} /></div>;
+  }
   return user ? children : <Navigate to="/login" replace />;
 }
 

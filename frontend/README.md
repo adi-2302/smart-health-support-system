@@ -26,7 +26,25 @@ Open http://localhost:5173. Demo login after `seed_demo.py`: `demo@mindtrack.tes
 
 If the backend runs somewhere else, copy `.env.example` to `.env` and set `VITE_API_URL`.
 
-## Tests and build
+## Automated browser tests (end-to-end)
+30 tests drive the real app in a real browser against the real backend: registration and login errors, the full
+check-in, results, early warning, weekly report, settings, theme, privacy between users, a tampered token, the backend
+being down, phone width and keyboard use. Their titles use the same TC numbers as `MindTrack_Manual_Test_Cases.xlsx`.
+
+They start their **own** backend (port 8001, throwaway database) and frontend (port 5174), so your real data is never
+touched and your dev servers can stay open. Run from `frontend/`:
+```bash
+npm install                   # once (already done if you ran the app)
+npx playwright install chromium   # once: downloads the test browser (~150 MB)
+npm run test:e2e              # about 2 minutes
+npx playwright show-report e2e-report    # optional: browse the HTML report with screenshots
+```
+- Needs `python` on your PATH (set `PYTHON=py` or a full path if yours has another name) and the backend packages installed.
+- If the browser download is blocked, use the Chrome you already have: PowerShell `$env:PW_CHANNEL="chrome"; npm run test:e2e`
+  (Command Prompt: `set PW_CHANNEL=chrome` then `npm run test:e2e`).
+- Screenshots are saved in `e2e-results/` (two named screenshots: `result-high.png`, `mobile-dashboard.png`).
+
+## Unit tests and build
 ```bash
 npm test          # unit tests for date handling, risk bands, API error messages
 npm run build     # production bundle in dist/
