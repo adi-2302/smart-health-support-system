@@ -5,7 +5,7 @@ from pathlib import Path
 # Repo root = two levels above this file (backend/app/config.py -> repo root)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-MODEL_PATH = Path(os.getenv("MODEL_PATH", REPO_ROOT / "models" / "xgboost_model_v2.pkl"))
+MODEL_PATH = Path(os.getenv("MODEL_PATH", REPO_ROOT / "models" / "xgboost_model_v2.json"))
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{REPO_ROOT / 'backend' / 'mindtrack.db'}")
 
 # IMPORTANT: set a real secret in production (export SECRET_KEY=...). This default is for development only.

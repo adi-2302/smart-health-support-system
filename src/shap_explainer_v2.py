@@ -1,5 +1,5 @@
 """
-shap_explainer_v2.py  (Week 6 follow-up: explains the deployed model xgboost_model_v2.pkl)
+shap_explainer_v2.py  (Week 6 follow-up: explains the deployed model xgboost_model_v2.json)
 
 Generates SHAP explanations with TreeExplainer (exact Shapley values for tree models):
   - global importance: beeswarm (High-stress class) + bar (all classes)
@@ -8,7 +8,6 @@ Generates SHAP explanations with TreeExplainer (exact Shapley values for tree mo
 
 Run from the repo root:  python src/shap_explainer_v2.py
 """
-import pickle
 from pathlib import Path
 
 import matplotlib
@@ -17,16 +16,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
+from xgboost import XGBClassifier
 
-MODEL_FILE = "models/xgboost_model_v2.pkl"
+MODEL_FILE = "models/xgboost_model_v2.json"
 DATA_FILE = "data/raw/StressLevelDataset.csv"
 OUT_DIR = Path("reports/shap_plots_v2")
 SAMPLE_IDX = 7
 CLASS_NAMES = ["Low", "Medium", "High"]
 
 OUT_DIR.mkdir(parents=True, exist_ok=True)
-with open(MODEL_FILE, "rb") as f:
-    model = pickle.load(f)
+model = XGBClassifier()
+model.load_model(MODEL_FILE)
 df = pd.read_csv(DATA_FILE)
 X, y = df.drop(columns=["stress_level"]), df["stress_level"]
 

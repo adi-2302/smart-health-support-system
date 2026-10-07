@@ -14,6 +14,7 @@ on answers collected through this questionnaire, only on the original dataset's 
 """
 import pickle
 from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -50,10 +51,29 @@ FEATURE_LABELS = {
 }
 
 
+def _read_model(path):
+    """Load the model. The native XGBoost format (.json/.ubj) is preferred: unlike a pickle it does not depend on
+    the exact xgboost/scikit-learn/Python versions that saved it."""
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Model file not found: {path}. Train it with `python src/train_final_model.py` from the repo root.")
+    try:
+        if path.suffix in (".json", ".ubj"):
+            model = xgb.XGBClassifier()
+            model.load_model(path)
+            return model
+        with open(path, "rb") as f:          # legacy pickle support
+            return pickle.load(f)
+    except Exception as exc:                  # version mismatch / corrupt file
+        raise RuntimeError(
+            f"Could not load the model at {path} ({exc}). Re-create it on this machine with "
+            "`python src/train_final_model.py` (run from the repo root) and restart the server.") from exc
+
+
 @lru_cache(maxsize=1)
 def _load():
-    with open(config.MODEL_PATH, "rb") as f:
-        model = pickle.load(f)
+    model = _read_model(config.MODEL_PATH)
     feature_order = [str(c) for c in model.feature_names_in_]
     return model, model.get_booster(), feature_order
 

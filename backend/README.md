@@ -1,7 +1,7 @@
 # MindTrack backend (FastAPI)
 
 REST API for the Smart Mental Health Support System. Wraps the trained XGBoost model
-(`models/xgboost_model_v2.pkl`) + SHAP explanations, stores check-ins in SQLite, and
+(`models/xgboost_model_v2.json`) + SHAP explanations, stores check-ins in SQLite, and
 generates recommendations, weekly reports and early-warning alerts.
 
 ## Run it (from the repo root, inside your virtual environment)
@@ -57,3 +57,10 @@ set `false` in production).
 ## Demo data
 `python seed_demo.py` (from `backend/`) creates `demo@mindtrack.test` / `demo-pass-123` with six earlier days of
 check-ins, leaving today empty for a live demo. Delete `backend/mindtrack.db` to start from scratch.
+
+## Model file format
+The API loads `models/xgboost_model_v2.json` (XGBoost's native format). Create it on your own machine so it matches
+your xgboost version: `python src/convert_model_to_native.py` (converts your existing pickle and checks the predictions
+are identical) or `python src/train_final_model.py` (retrains and saves the JSON directly). Commit the JSON file.
+A model saved by a much newer xgboost can give slightly different probabilities (about 0.005 in a test with 3.4 -> 2.1)
+when loaded by an older one, so generate the file with the same version you demo on.

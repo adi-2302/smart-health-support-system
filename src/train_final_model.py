@@ -8,9 +8,8 @@ Why: the Week 5 grid search optimised weighted F1 and picked learning_rate=0.01 
 That gives the right classes (87.3% test accuracy) but near-uniform probabilities (mean max
 probability 0.67, risk scores squeezed into ~2-8 of 0-10). Selection here uses 5-fold stratified
 CV on the TRAINING split only; the test split is evaluated once at the end.
-Saves to models/xgboost_model_v2.pkl (the Week 5 model is kept untouched).
+Saves to models/xgboost_model_v2.json (XGBoost's native, version-tolerant format; the Week 5 model is kept untouched).
 """
-import pickle
 import pandas as pd
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score, f1_score, log_loss, confusion_matrix
@@ -38,6 +37,5 @@ print(f"TEST  accuracy={accuracy_score(yte, pred):.4f}  F1={f1_score(yte, pred, 
 print("Mean max-probability:", round(float(proba.max(1).mean()), 2))
 print("Confusion matrix:\n", confusion_matrix(yte, pred))
 
-with open("models/xgboost_model_v2.pkl", "wb") as f:
-    pickle.dump(best, f)
-print("Saved models/xgboost_model_v2.pkl")
+best.save_model("models/xgboost_model_v2.json")   # native format: loads on other xgboost versions/machines
+print("Saved models/xgboost_model_v2.json")
