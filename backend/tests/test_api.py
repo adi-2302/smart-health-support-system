@@ -144,8 +144,22 @@ def test_one_checkin_per_day_and_validation(client):
 def test_today_endpoint(client):
     token = register(client, "today@example.com").json()["token"]
     assert client.get("/checkins/today", headers=auth(token)).json()["completed"] is False
-    client.post("/checkins", json={"answers": answers("good")}, headers=auth(token))
-    assert client.get("/checkins/today", headers=auth(token)).json()["completed"] is True
+    posted = client.post("/checkins", json={"answers": answers("good")}, headers=auth(token)).json()
+    today = client.get("/checkins/today", headers=auth(token)).json()
+    assert today["completed"] is True
+    # a refresh must return the same full result, not just the prediction
+    assert today["prediction"]["risk_score"] == posted["prediction"]["risk_score"]
+    assert today["answers"] == answers("good")
+    assert {"comparison", "exam", "early_warning", "recommendations"} <= set(today)
+    assert today["recommendations"] == posted["recommendations"]
+
+
+def test_cors_allows_local_dev_origins(client):
+    for origin in ("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4173"):
+        r = client.get("/health", headers={"Origin": origin})
+        assert r.headers.get("access-control-allow-origin") == origin
+    r = client.get("/health", headers={"Origin": "http://evil.example.com"})
+    assert "access-control-allow-origin" not in r.headers
 
 
 # ---------- trend, early warning, weekly report ----------

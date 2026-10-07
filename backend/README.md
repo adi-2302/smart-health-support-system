@@ -15,7 +15,7 @@ Interactive docs (try every endpoint in the browser): http://localhost:8000/docs
 ## Run the tests
 ```bash
 cd backend
-pytest -q                               # 14 tests, uses a throwaway database
+pytest -q                               # 15 tests, uses a throwaway database
 ```
 
 ## Endpoints
@@ -28,7 +28,7 @@ pytest -q                               # 14 tests, uses a throwaway database
 | GET | `/exam/countdown` | `days_remaining = exam_date - today` (auto-calculated) |
 | GET | `/questions` | The 19 check-in questions + options (frontend renders from this) |
 | POST | `/checkins` | Submit daily answers -> prediction, SHAP explanation, recommendations, early warning |
-| GET | `/checkins/today` | Has the student checked in today? |
+| GET | `/checkins/today` | Today's full result (prediction, SHAP, answers, recommendations, early warning) or `completed: false` |
 | GET | `/checkins/history?days=14` | Risk-score history |
 | GET | `/reports/weekly` | Weekly report: trend, best/worst day, vs last week, SHAP factors, recommendations |
 | GET | `/insights/global` | Overall feature importance (mean abs SHAP) |
@@ -53,3 +53,7 @@ set `false` in production).
   design choices, not validated on real longitudinal data. Tune them with pilot data.
 - `blood_pressure` / `breathing_problem` are self-reported, not sensor readings.
 - Recommendations are general wellbeing suggestions, not medical advice.
+
+## Demo data
+`python seed_demo.py` (from `backend/`) creates `demo@mindtrack.test` / `demo-pass-123` with six earlier days of
+check-ins, leaving today empty for a live demo. Delete `backend/mindtrack.db` to start from scratch.

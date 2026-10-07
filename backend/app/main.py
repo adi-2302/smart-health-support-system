@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from . import ml_service
@@ -21,7 +21,7 @@ app = FastAPI(title="MindTrack API", version="0.1.0",
               description="Smart Mental Health Support System for Students in Higher Education", lifespan=lifespan)
 
 # Development: allow the local React dev server. Tighten to the real frontend origin in production.
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://localhost:3000"],
+app.add_middleware(CORSMiddleware, allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
                    allow_methods=["*"], allow_headers=["*"])
 
 app.include_router(auth_router)
@@ -29,12 +29,11 @@ app.include_router(checkin_router)
 app.include_router(reports_router)
 
 
-@app.get("/", include_in_schema=False)
-def root():
-    """Send the bare address to the interactive API docs instead of a 404."""
-    return RedirectResponse("/docs")
-
-
 @app.get("/health", tags=["meta"])
 def health():
     return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/docs")

@@ -1,0 +1,7 @@
+# add these lines to your repo's .gitignore
+backend/mindtrack.db
+.pytest_cache/
+__pycache__/
+venv/
+node_modules/
+frontend/dist/

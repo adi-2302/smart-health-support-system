@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from . import config, ml_service
 from .database import get_db
 from .models import User, DailyResponse, Prediction
-from .questionnaire import QUESTIONS
+from .questionnaire import QUESTIONS, QUESTION_KEYS
 from .recommendation import build_recommendations, early_warning, classify_trend
 from .schemas import CheckinRequest
 from .security import get_current_user
@@ -54,6 +54,19 @@ def submit_checkin(body: CheckinRequest, user: User = Depends(get_current_user),
     ))
     db.commit()
 
+    return build_checkin_result(db, user, day)
+
+
+def build_checkin_result(db: Session, user: User, day: date) -> dict:
+    """Full result for one stored check-in: prediction, comparison, exam, early warning, recommendations.
+    Shared by POST /checkins and GET /checkins/today so a page refresh shows the same result."""
+    row = db.execute(
+        select(DailyResponse, Prediction).join(Prediction, Prediction.response_id == DailyResponse.response_id)
+        .where(DailyResponse.user_id == user.user_id, DailyResponse.response_date == day)
+    ).first()
+    response, pred = row
+    result = prediction_payload(pred)
+
     exam = exam_info(user, day)
     history = recent_history(db, user.user_id, day, limit=7)
     earlier = [(d, p) for d, p in history if d < day]
@@ -68,9 +81,10 @@ def submit_checkin(body: CheckinRequest, user: User = Depends(get_current_user),
     recs = build_recommendations(result, exam["days_remaining"], previous_risk, weekly_trend)
 
     return {
+        "completed": True,
         "date": day.isoformat(),
-        "prediction": {k: result[k] for k in ("predicted_class", "predicted_label", "confidence",
-                                              "probabilities", "risk_score", "explanation", "stress_drivers")},
+        "answers": {k: getattr(response, k) for k in QUESTION_KEYS},
+        "prediction": result,
         "comparison": {"previous_risk_score": previous_risk,
                        "change": round(result["risk_score"] - previous_risk, 2) if previous_risk is not None else None},
         "exam": exam,
@@ -82,10 +96,9 @@ def submit_checkin(body: CheckinRequest, user: User = Depends(get_current_user),
 @router.get("/checkins/today")
 def today_checkin(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     today = date.today()
-    rows = predictions_between(db, user.user_id, today, today)
-    if not rows:
-        return {"completed": False, "date": today.isoformat()}
-    return {"completed": True, "date": today.isoformat(), "prediction": prediction_payload(rows[0][1])}
+    if not predictions_between(db, user.user_id, today, today):
+        return {"completed": False, "date": today.isoformat(), "exam": exam_info(user, today)}
+    return build_checkin_result(db, user, today)
 
 
 @router.get("/checkins/history")

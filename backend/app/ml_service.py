@@ -1,4 +1,8 @@
-"""Model inference + SHAP explanations using the Week 5 XGBoost model and Week 6 TreeExplainer.
+"""Model inference + SHAP explanations using the XGBoost model.
+
+SHAP values come from XGBoost's built-in TreeSHAP (`Booster.predict(..., pred_contribs=True)`), which is the
+same algorithm as shap.TreeExplainer (verified identical on random inputs). This keeps the web backend free of the
+`shap`/`numba` dependency chain; `shap` is only needed for the offline plotting scripts in src/.
 
 DESIGN NOTE (questionnaire -> model scale mapping)
 The model was trained on StressLevelDataset.csv, whose features use different native
@@ -13,7 +17,7 @@ from functools import lru_cache
 
 import numpy as np
 import pandas as pd
-import shap
+import xgboost as xgb
 
 from . import config
 
@@ -50,9 +54,8 @@ FEATURE_LABELS = {
 def _load():
     with open(config.MODEL_PATH, "rb") as f:
         model = pickle.load(f)
-    explainer = shap.TreeExplainer(model)
     feature_order = [str(c) for c in model.feature_names_in_]
-    return model, explainer, feature_order
+    return model, model.get_booster(), feature_order
 
 
 def to_model_features(answers: dict, mental_health_history: int) -> pd.DataFrame:
@@ -84,11 +87,12 @@ def _factors(shap_row: np.ndarray, X: pd.DataFrame, order: list[str], top_n: int
 
 
 def predict_with_explanation(answers: dict, mental_health_history: int, top_n: int = 6) -> dict:
-    model, explainer, order = _load()
+    model, booster, order = _load()
     X = to_model_features(answers, mental_health_history)
     proba = model.predict_proba(X)[0]
     pred = int(np.argmax(proba))
-    sv = explainer(X).values[0]  # shape (n_features, n_classes)
+    # TreeSHAP per class: (1, n_classes, n_features + 1 bias) -> (n_features, n_classes)
+    sv = booster.predict(xgb.DMatrix(X), pred_contribs=True)[0][:, :-1].T
 
     # Probability-weighted 0-10 score: Low=0, Medium=0.5, High=1.0
     risk_score = float((proba[1] * 0.5 + proba[2] * 1.0) * 10)
